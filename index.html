@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Brawl Stars Mobile — Ящики | Джойстик | 2 режима</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0a0f1a;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        /* ГЛАВНОЕ МЕНЮ */
+        .main-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 30%, #0b2b3b, #03070f);
+            z-index: 300;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+        .game-title {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFD966, #FF8C00, #FF2E00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(255,140,0,0.5);
+            margin-bottom: 10px;
+        }
+        .game-sub {
+            color: #ffcc88;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 80%;
+            max-width: 280px;
+        }
+        .menu-btn {
+            background: linear-gradient(45deg, #ff8c00, #ff2e00);
+            border: none;
+            padding: 14px 0;
+            border-radius: 60px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px black;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            transition: 0.05s linear;
+            cursor: pointer;
+        }
+        .menu-btn:active { transform: scale(0.97); }
+        .menu-btn.secondary { background: linear-gradient(45deg, #2c6e2c, #1a4a1a); }
+        .menu-btn.inventory { background: linear-gradient(45deg, #aa44ff, #6600cc); }
+        .menu-btn.box { background: linear-gradient(45deg, #ea8e2a, #c96f1a); margin-top: 10px; }
+        .version { position: absolute; bottom: 20px; color: #aaa; font-size: 11px; }
+        
+        /* ИГРОВОЙ ИНТЕРФЕЙС */
+        .game-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 20;
+            pointer-events: none;
+            display: none;
+        }
+        .top-panel {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 60px;
+            padding: 6px 12px;
+            pointer-events: auto;
+            border: 1px solid rgba(255,215,0,0.5);
+            font-weight: bold;
+            font-size: 12px;
+            color: white;
+        }
+        .mode-badge { background: linear-gradient(135deg, #ff6600, #ff2200); padding: 4px 12px; border-radius: 40px; font-size: 11px; }
+        .score { background: #1a2a3a; padding: 4px 12px; border-radius: 40px; }
+        .crystal-badge { background: #2a1a0a; color: #ffcc44; padding: 4px 12px; border-radius: 40px; display: flex; gap: 5px; }
+        .timer { font-family: monospace; font-size: 18px; background: #000000aa; padding: 4px 12px; border-radius: 40px; }
+        .hold-timer {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: black;
+            padding: 6px 20px;
+            border-radius: 60px;
+            color: gold;
+            font-size: 20px;
+            font-weight: bold;
+            white-space: nowrap;
+            z-index: 30;
+            pointer-events: none;
+            border: 1px solid gold;
+            display: none;
+        }
+        /* ДЖОЙСТИК */
+        .joystick-area {
+            position: absolute;
+            bottom: 100px;
+            left: 30px;
+            width: 140px;
+            height: 140px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 70px;
+            pointer-events: auto;
+            touch-action: none;
+        }
+        .joystick-base {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(30,30,45,0.8);
+            border-radius: 60px;
+            top: 10px;
+            left: 10px;
+            border: 2px solid #ffaa44;
+            box-shadow: 0 0 12px black;
+        }
+        .joystick-thumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle at 30% 30%, #ffdd99, #ffaa44);
+            border-radius: 30px;
+            top: 40px;
+            left: 40px;
+            transition: transform 0.03s linear;
+            box-shadow: 0 0 10px gold;
+            border: 1px solid white;
+        }
+        .right-buttons {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+        }
+        .action-mobile {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ff8c00, #cc4400);
+            border: none;
+            color: white;
+            font-weight: bold;
+            font-size: 22px;
+            box-shadow: 0 5px 15px black;
+            transition: 0.02s linear;
+            touch-action: manipulation;
+        }
+        .action-mobile:active { transform: scale(0.94); }
+        .attack-m { background: radial-gradient(circle at 30% 30%, #ff4444, #aa0000); box-shadow: 0 0 15px red; font-size: 26px; }
+        .ult-m { background: radial-gradient(circle at 30% 30%, #aa44ff, #6600cc); }
+        .gadget-m { background: radial-gradient(circle at 30% 30%, #44aaff, #0066aa); width: 60px; height: 60px; font-size: 18px; }
+        .bottom-menu {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            pointer-events: auto;
+        }
+        .bottom-btn {
+            background: #2c6e2c;
+            padding: 8px 20px;
+            border-radius: 40px;
+            font-weight: bold;
+            border: none;
+            color: white;
+            font-size: 14px;
+            box-shadow: 0 2px 8px black;
+        }
+        .inv-btn { background: #ff8c00; }
+        .menu-exit { background: #444; }
+        
+        /* Модальные окна */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            backdrop-filter: blur(15px);
+            z-index: 400;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: linear-gradient(145deg, #1e2a3a, #0f1a24);
+            border-radius: 48px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            border: 2px solid gold;
+            text-align: center;
+        }
+        .brawler-list {
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        .brawler-item {
+            background: #2a3a48;
+            border-radius: 30px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+        }
+        .brawler-item.selected { background: #3a5a6a; border: 1px solid gold; }
+        .brawler-item.locked { opacity: 0.5; filter: grayscale(0.5); cursor: default; }
+        .close-modal { background: #ff4444; border: none; padding: 12px; border-radius: 40px; width: 100%; color: white; font-weight: bold; margin-top: 10px; }
+        
+        .health-bar-container {
+            position: fixed;
+            bottom: 30px;
+            left: 20px;
+            width: 320px;
+            background: #330000;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 26px;
+            border: 2px solid gold;
+            z-index: 25;
+        }
+        .health-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #ff4444, #ff8844); transition: width 0.2s; }
+        .health-text { position: fixed; left: 30px; bottom: 62px; color: white; font-weight: bold; text-shadow: 1px 1px 0 black; font-size: 14px; z-index: 26; }
+        
+        @media (max-width: 700px) {
+            .joystick-area { width: 120px; height: 120px; bottom: 80px; left: 15px; }
+            .joystick-base { width: 100px; height: 100px; top: 10px; left: 10px; }
+            .joystick-thumb { width: 50px; height: 50px; top: 35px; left: 35px; }
+            .action-mobile { width: 60px; height: 60px; font-size: 20px; }
+            .gadget-m { width: 50px; height: 50px; }
+            .game-title { font-size: 36px; }
+            .health-bar-container { width: 250px; bottom: 20px; left: 15px; }
+            .health-text { left: 25px; bottom: 52px; font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- ГЛАВНОЕ МЕНЮ -->
+    <div id="mainMenu" class="main-menu">
+        <div class="game-title">BRAWL STARS</div>
+        <div class="game-sub">3D Mobile | Ящики | Джойстик</div>
+        <div class="menu-buttons">
+            <button class="menu-btn" id="playCrystalBtn">💎 ЗАХВАТ КРИСТАЛЛОВ</button>
+            <button class="menu-btn secondary" id="playKnockoutBtn">⚔️ НОКАУТ 3v3</button>
+            <button class="menu-btn inventory" id="menuInventoryBtn">📦 ИНВЕНТАРЬ</button>
+            <button class="menu-btn box" id="openBoxBtn">🎁 ОТКРЫТЬ ЯЩИК</button>
+        </div>
+        <div class="version">v3.0 | Сенсорное управление</div>
+    </div>
+    
+    <!-- ИГРОВОЙ ИНТЕРФЕЙС -->
+    <div id="gameUI" class="game-ui">
+        <div class="top-panel">
+            <div class="mode-badge" id="modeLabel">💎 ЗАХВАТ</div>
+            <div class="score">🏆 <span id="pScore">0</span> : <span id="eScore">0</span></div>
+            <div class="crystal-badge" id="crystalUI">💎 <span id="crystalsOwn">0</span></div>
+            <div class="timer" id="gameTimer">03:00</div>
+        </div>
+        <div class="hold-timer" id="holdMsg">⚡ УДЕРЖИВАЙТЕ 10</div>
+        
+        <div class="joystick-area" id="joystickArea">
+            <div class="joystick-base"></div>
+            <div class="joystick-thumb" id="joyThumb"></div>
+        </div>
+        
+        <div class="right-buttons">
+            <button class="action-mobile attack-m" id="btnAttack">⚔️<br>АТАКА</button>
+            <button class="action-mobile ult-m" id="btnUlt">✨<br>УЛЬТА</button>
+            <button class="action-mobile gadget-m" id="btnGadget">🎮<br>ГАДЖЕТ</button>
+        </div>
+        
+        <div class="bottom-menu">
+            <button class="bottom-btn inv-btn" id="gameInventoryBtn">📦 ИНВЕНТАРЬ</button>
+            <button class="bottom-btn menu-exit" id="exitToMenuBtn">🏠 МЕНЮ</button>
+        </div>
+    </div>
+    
+    <!-- ИНВЕНТАРЬ -->
+    <div id="inventoryModal" class="modal">
+        <div class="modal-content">
+            <div style="font-size: 24px; color: gold;">📦 ТВОИ БОЙЦЫ</div>
+            <div id="invList" class="brawler-list"></div>
+            <button class="close-modal" id="closeInvModal">ЗАКРЫТЬ</button>
+        </div>
+    </div>
+    
+    <div class="health-bar-container">
+        <div class="health-bar" id="healthBar"></div>
+        <div class="health-text" id="healthText">❤️ 100%</div>
+    </div>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        
+        // ---------- БОЙЦЫ ----------
+        const BRAWLERS = [
+            { id:0, name:"ШЕЛЛИ", icon:"🔫", color:0xff6666, ultColor:0xff4444, baseHp:100, baseDamage:22, attackSpeed:0.45, ultName:"Разрывной", baseUltDamage:35, gadget:"Ускорение", starter:true },
+            { id:1, name:"СПАЙК", icon:"🌵", color:0xffaa44, ultColor:0xffaa00, baseHp:110, baseDamage:20, attackSpeed:0.5, ultName:"Кактусный дождь", baseUltDamage:40, gadget:"Шипы" },
+            { id:2, name:"БУЛЛ", icon:"🐂", color:0xaa8866, ultColor:0xcc6633, baseHp:130, baseDamage:16, attackSpeed:0.6, ultName:"Тараран", baseUltDamage:30, gadget:"Щит" },
+            { id:3, name:"БРОК", icon:"🚀", color:0x66aaff, ultColor:0xff8844, baseHp:90, baseDamage:26, attackSpeed:0.42, ultName:"Ракетный удар", baseUltDamage:45, gadget:"Прыжок" },
+            { id:4, name:"ДЖЕССИ", icon:"⚡", color:0x88aaff, ultColor:0x44aaff, baseHp:100, baseDamage:18, attackSpeed:0.55, ultName:"Электрошок", baseUltDamage:35, gadget:"Щит" },
+            { id:5, name:"МОРТИС", icon:"🦇", color:0xaa66cc, ultColor:0xcc44ff, baseHp:95, baseDamage:24, attackSpeed:0.5, ultName:"Тьма", baseUltDamage:40, gadget:"Лечение" },
+            { id:6, name:"ПАМ", icon:"🔧", color:0x77aa77, ultColor:0x44ff44, baseHp:120, baseDamage:14, attackSpeed:0.65, ultName:"Лечение", baseUltDamage:0, gadget:"Медстанция", isHealer:true },
+            { id:7, name:"ЛЕОНИ", icon:"🐱", color:0xaa8866, ultColor:0x88aaff, baseHp:95, baseDamage:24, attackSpeed:0.48, ultName:"Невидимость", baseUltDamage:0, gadget:"Клон" }
+        ];
+        
+        const LEVEL_MULT = {1:{dmg:1,hp:1,ult:1},2:{dmg:1.15,hp:1.1,ult:1.1},3:{dmg:1.25,hp:1.2,ult:1.2},4:{dmg:1.35,hp:1.3,ult:1.3},5:{dmg:1.45,hp:1.4,ult:1.4},6:{dmg:1.55,hp:1.5,ult:1.5},7:{dmg:1.7,hp:1.6,ult:1.6}};
+        class OwnedBrawler { constructor(base,lvl=1){ this.base=base; this.level=lvl; this.update(); } update(){ let m=LEVEL_MULT[this.level]; this.hp=Math.floor(this.base.baseHp*m.hp); this.damage=Math.floor(this.base.baseDamage*m.dmg); this.ultDamage=Math.floor(this.base.baseUltDamage*m.ult); } upgrade(){ if(this.level<7){ this.level++; this.update(); return true;} return false; } }
+        
+        let inventory = [new OwnedBrawler(BRAWLERS[0],1)];
+        let selectedId = 0;
+        let gameMode = 'crystal';
+        let matchActive = false, winnerDeclared = false, matchTime = 180, holdTime = 0;
+        let playerTeam = [], enemyTeam = [];
+        let attackCd=0, ultCd=0, gadgetCd=0;
+        let scene, camera, renderer, labelRenderer, controls;
+        let crystalPickups = [];
+        let playerSpawn = {x:-6,z:5}, enemySpawn = {x:6,z:-5};
+        let moveVec = {x:0, z:0};
+        
+        // UI элементы
+        const modeLabel = document.getElementById('modeLabel');
+        const pScoreSpan = document.getElementById('pScore');
+        const eScoreSpan = document.getElementById('eScore');
+        const crystalsSpan = document.getElementById('crystalsOwn');
+        const timerSpan = document.getElementById('gameTimer');
+        const holdMsgDiv = document.getElementById('holdMsg');
+        const healthBarDiv = document.getElementById('healthBar');
+        const healthTextSpan = document.getElementById('healthText');
+        
+        // ---------- 3D инициализация ----------
+        function init3D() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a2a3a);
+            scene.fog = new THREE.FogExp2(0x0a2a3a, 0.008);
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
+            camera.position.set(10, 8, 12);
+            renderer = new THREE.WebGLRenderer({antialias:true});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.left = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.body.appendChild(labelRenderer.domElement);
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            controls.target.set(0,2,0);
+            
+            const ambient = new THREE.AmbientLight(0x404060);
+            scene.add(ambient);
+            const dirLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
+            dirLight.position.set(5,12,4);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+            
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(34,34), new THREE.MeshStandardMaterial({color:0x4a7a3a,roughness:0.7}));
+            ground.rotation.x = -Math.PI/2;
+            ground.position.y = -0.2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            for(let i=0;i<40;i++){ let a=Math.random()*Math.PI*2,r=8+Math.random()*8; let x=Math.cos(a)*r,z=Math.sin(a)*r; let t=new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.5,0.8,5),new THREE.MeshStandardMaterial({color:0x8B5A2B})); t.position.set(x,-0.1,z); t.castShadow=true; let top=new THREE.Mesh(new THREE.ConeGeometry(0.6,0.9,6),new THREE.MeshStandardMaterial({color:0x5a9e3a})); top.position.set(x,0.5,z); top.castShadow=true; scene.add(t,top);}
+            const platform = new THREE.Mesh(new THREE.CylinderGeometry(2.5,2.8,0.4,8), new THREE.MeshStandardMaterial({color:0x8866cc,metalness:0.6}));
+            platform.position.set(0,-0.1,0); platform.castShadow=true; scene.add(platform);
+            for(let i=0;i<18;i++){ let a=Math.random()*Math.PI*2,r=3+Math.random()*7; spawnCrystal(Math.cos(a)*r, Math.sin(a)*r); }
+            let pMarker=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.1,8),new THREE.MeshStandardMaterial({color:0x44ff44,emissive:0x226622}));
+            pMarker.position.set(playerSpawn.x,-0.15,playerSpawn.z); scene.add(pMarker);
+            let eMarker=new THREE.Mesh(new THREE.CylinderGeometry(0.6,0.6,0.1,8),new THREE.MeshStandardMaterial({color:0xff4444,emissive:0x442222}));
+            eMarker.position.set(enemySpawn.x,-0.15,enemySpawn.z); scene.add(eMarker);
+            for(let i=-2;i<=2;i++){ let w=new THREE.Mesh(new THREE.BoxGeometry(0.8,2.5,0.8),new THREE.MeshStandardMaterial({color:0xaa9988})); w.position.set(i*1.5,1.2,-9); scene.add(w); }
+            let tow=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.5,3,8),new THREE.MeshStandardMaterial({color:0xaa9988})); tow.position.set(0,1.5,-9); scene.add(tow);
+            let roof=new THREE.Mesh(new THREE.ConeGeometry(1.0,1.2,8),new THREE.MeshStandardMaterial({color:0xcc6644})); roof.position.set(0,3.0,-9); scene.add(roof);
+            let fountain=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.8,0.4,16),new THREE.MeshStandardMaterial({color:0x88aaff,metalness:0.5})); fountain.position.set(8,-0.1,-7); scene.add(fountain);
+            let water=new THREE.Mesh(new THREE.CylinderGeometry(1.2,1.2,0.1,16),new THREE.MeshStandardMaterial({color:0x3399ff,emissive:0x004466})); water.position.set(8,0.15,-7); scene.add(water);
+        }
+        function spawnCrystal(x,z){ let c=new THREE.Mesh(new THREE.DodecahedronGeometry(0.32), new THREE.MeshStandardMaterial({color:0xffaa55,emissive:0x552200,emissiveIntensity:0.6})); c.position.set(x,0.15,z); c.castShadow=true; scene.add(c); crystalPickups.push(c); }
+        
+        function createBrawlerModel(b,isEnemy){
+            let g=new THREE.Group();
+            let mat=new THREE.MeshStandardMaterial({color:b.base.color});
+            let body=new THREE.Mesh(new THREE.CylinderGeometry(0.55,0.55,0.85,16),mat);
+            body.position.y=0.4; g.add(body);
+            let head=new THREE.Mesh(new THREE.SphereGeometry(0.5,24,24),mat);
+            head.position.y=0.9; g.add(head);
+            let eye=new THREE.Mesh(new THREE.SphereGeometry(0.12,16,16),new THREE.MeshStandardMaterial({color:0xffffff}));
+            eye.position.set(-0.2,1.05,0.5);
+            let eyeR=eye.clone(); eyeR.position.set(0.2,1.05,0.5);
+            g.add(eye,eyeR);
+            let pup=new THREE.Mesh(new THREE.SphereGeometry(0.07,16,16),new THREE.MeshStandardMaterial({color:isEnemy?0xff8888:0x000000}));
+            pup.position.set(-0.2,1.03,0.62);
+            let pupR=pup.clone(); pupR.position.set(0.2,1.03,0.62);
+            g.add(pup,pupR);
+            let div=document.createElement('div');
+            div.innerHTML=`${b.base.name}${isEnemy?' 👾':''}<div style="background:#330000;width:70px;height:6px;border-radius:3px;margin-top:4px;"><div style="background:#ff4444;width:100%;height:100%;border-radius:3px;" class="hpbar"></div></div>`;
+            div.style.cssText="color:#ffdd99;background:rgba(0,0,0,0.7);padding:2px 8px;border-radius:20px;font-size:12px;text-align:center";
+            let label=new CSS2DObject(div); label.position.set(0,1.3,0);
+            g.add(label);
+            g.userData={hp:b.hp, maxHp:b.hp, label, brawler:b, isEnemy};
+            return g;
+        }
+        
+        function updateHealth(model,cur,max){ if(model.userData.label?.element){ let bar=model.userData.label.element.querySelector('.hpbar'); if(bar) bar.style.width=`${Math.max(0,cur/max*100)}%`; } }
+        
+        function performAttack(att,target){
+            let dmg=att.brawler.damage;
+            target.hp-=dmg;
+            updateHealth(target.model,target.hp,target.brawler.hp);
+            if(target.hp<=0){
+                if(target.crystals){ let lost=target.crystals; target.crystals=0; for(let i=0;i<lost;i++) spawnCrystal(target.model.position.x+(Math.random()-0.5)*1.5, target.model.position.z+(Math.random()-0.5)*1.5); }
+                let sp=target.ai?enemySpawn:playerSpawn;
+                target.hp=target.brawler.hp;
+                target.model.position.set(sp.x+(Math.random()-0.5)*1.5,0,sp.z+(Math.random()-0.5)*1.5);
+                updateHealth(target.model,target.hp,target.brawler.hp);
+                if(gameMode==='knockout') checkKnockoutWin();
+            }
+        }
+        
+        function performUlt(att,targetTeam){
+            let dmg=att.brawler.ultDamage;
+            targetTeam.forEach(t=>{
+                if(att.model.position.distanceTo(t.model.position)<4.5){
+                    t.hp-=dmg;
+                    updateHealth(t.model,t.hp,t.brawler.hp);
+                    if(t.hp<=0){
+                        let sp=t.ai?enemySpawn:playerSpawn;
+                        t.hp=t.brawler.hp;
+                        t.model.position.set(sp.x+(Math.random()-0.5)*1.5,0,sp.z+(Math.random()-0.5)*1.5);
+                        updateHealth(t.model,t.hp,t.brawler.hp);
+                        if(gameMode==='knockout') checkKnockoutWin();
+                    }
+                }
+            });
+            let eff=new THREE.Mesh(new THREE.SphereGeometry(1.5,8,8),new THREE.MeshStandardMaterial({color:att.brawler.base.ultColor,emissive:att.brawler.base.ultColor}));
+            eff.position.copy(att.model.position);
+            scene.add(eff);
+            setTimeout(()=>scene.remove(eff),500);
+        }
+        
+        function checkKnockoutWin(){ if(!matchActive||winnerDeclared) return; let enemyAlive=enemyTeam.some(u=>u.hp>0); if(!enemyAlive){ winnerDeclared=true; matchActive=false; showMsg("🏆 ПОБЕДА! ВСЕ ВРАГИ ПОВЕРЖЕНЫ!"); } }
+        
+        function showMsg(t){
+            let d=document.createElement('div');
+            d.className='match-message';
+            d.textContent=t;
+            d.style.position='fixed';d.style.top='40%';d.style.left='50%';d.style.transform='translate(-50%,-50%)';
+            d.style.background='black';d.style.color='gold';d.style.padding='15px 30px';d.style.borderRadius='60px';
+            d.style.zIndex=500;d.style.fontWeight='bold';d.style.whiteSpace='nowrap';
+            document.body.appendChild(d);
+            setTimeout(()=>d.remove(),2000);
+        }
+        
+        function updateAITeam(team,targetTeam,delta){
+            let now=Date.now()/1000;
+            for(let u of team){
+                if(u.ai===false) continue;
+                let closest=null,dist=Infinity;
+                for(let e of targetTeam){
+                    let d=u.model.position.distanceTo(e.model.position);
+                    if(d<dist && e.hp>0){ dist=d; closest=e;}
+                }
+                if(closest && dist<7){
+                    let dir=new THREE.Vector3().subVectors(closest.model.position,u.model.position).normalize();
+                    u.model.position.x+=dir.x*2.5*delta;
+                    u.model.position.z+=dir.z*2.5*delta;
+                    if(dist<2.2 && now-(u.lastAttack||0)>u.brawler.base.attackSpeed){
+                        u.lastAttack=now;
+                        performAttack(u,closest);
+                    }
+                    if(dist<3.8 && now-(u.lastUlt||0)>12 && Math.random()<0.01){
+                        u.lastUlt=now;
+                        performUlt(u,targetTeam);
+                    }
+                } else {
+                    let toCenter=new THREE.Vector3(-u.model.position.x,0,-u.model.position.z).normalize();
+                    u.model.position.x+=toCenter.x*1.8*delta;
+                    u.model.position.z+=toCenter.z*1.8*delta;
+                }
+                if(gameMode==='crystal'){
+                    for(let i=0;i<crystalPickups.length;i++){
+                        if(u.model.position.distanceTo(crystalPickups[i].position)<1.0){
+                            scene.remove(crystalPickups[i]);
+                            crystalPickups.splice(i,1);
+                            u.crystals=(u.crystals||0)+1;
+                            i--;
+                        }
+                    }
+                }
+                let lim=14;
+                u.model.position.x=Math.min(lim,Math.max(-lim,u.model.position.x));
+                u.model.position.z=Math.min(lim,Math.max(-lim,u.model.position.z));
+            }
+        }
+        
+        function createTeam(sp,isEnemy){
+            let ids=isEnemy?[2,1,3]:[selectedId,4,1];
+            let team=[];
+            for(let i=0;i<3;i++){
+                let b=inventory.find(b=>b.base.id===ids[i]);
+                if(!b) b=inventory[0];
+                let model=createBrawlerModel(b,isEnemy);
+                let offX=(i-1)*1.3, offZ=i*0.6;
+                model.position.set(sp.x+offX,0,sp.z+offZ);
+                scene.add(model);
+                team.push({model,brawler:b,hp:b.hp,crystals:0,ai:isEnemy?true:(i!==0),lastAttack:0,lastUlt:0});
+                updateHealth(model,b.hp,b.hp);
+            }
+            return team;
+        }
+        
+        function startMatch(mode){
+            gameMode=mode;
+            modeLabel.innerText=mode==='crystal'?'💎 ЗАХВАТ КРИСТАЛЛОВ':'⚔️ НОКАУТ 3v3';
+            if(playerTeam.length) playerTeam.forEach(p=>scene.remove(p.model));
+            if(enemyTeam.length) enemyTeam.forEach(e=>scene.remove(e.model));
+            crystalPickups.forEach(c=>scene.remove(c));
+            crystalPickups=[];
+            playerTeam=createTeam(playerSpawn,false);
+            enemyTeam=createTeam(enemySpawn,true);
+            if(gameMode==='crystal'){
+                for(let i=0;i<18;i++){ let a=Math.random()*Math.PI*2; spawnCrystal(Math.cos(a)*(3+Math.random()*7), Math.sin(a)*(3+Math.random()*7)); }
+                document.getElementById('crystalUI').style.display='flex';
+            } else document.getElementById('crystalUI').style.display='none';
+            matchTime=180;
+            winnerDeclared=false;
+            matchActive=true;
+            attackCd=0; ultCd=0; gadgetCd=0; holdTime=0;
+            pScoreSpan.innerText="0"; eScoreSpan.innerText="0"; crystalsSpan.innerText="0";
+            holdMsgDiv.style.display='none';
+            showMsg(`⚔️ МАТЧ НАЧАЛСЯ! ${mode==='crystal'?'Собери 10 кристаллов и удержи 10с':'Убейте всех врагов!'}`);
+            if(window.timerInt) clearInterval(window.timerInt);
+            window.timerInt=setInterval(()=>{
+                if(!matchActive||winnerDeclared){clearInterval(window.timerInt);return;}
+                if(matchTime<=0){clearInterval(window.timerInt); endMatchTime();}
+                else{ matchTime--; let m=Math.floor(matchTime/60),s=matchTime%60; timerSpan.innerText=`${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`; }
+            },1000);
+        }
+        
+        function endMatchTime(){
+            if(winnerDeclared) return;
+            winnerDeclared=true; matchActive=false;
+            if(gameMode==='crystal'){
+                let pc=0,ec=0;
+                for(let u of playerTeam) pc+=u.crystals||0;
+                for(let u of enemyTeam) ec+=u.crystals||0;
+                if(pc>ec) showMsg("⏰ ПОБЕДА ПО КРИСТАЛЛАМ!");
+                else if(ec>pc) showMsg("⏰ ПОРАЖЕНИЕ");
+                else showMsg("⏰ НИЧЬЯ");
+            } else {
+                let pc=playerTeam.filter(u=>u.hp>0).length, ec=enemyTeam.filter(u=>u.hp>0).length;
+                if(pc>ec) showMsg("⏰ ПОБЕДА ПО ВЫЖИВШИМ!");
+                else showMsg("⏰ ПОРАЖЕНИЕ");
+            }
+        }
+        
+        function updatePlayerMovement(delta){
+            if(!matchActive||winnerDeclared) return;
+            let pl=playerTeam[0];
+            let mx=moveVec.x, mz=moveVec.z;
+            if(mx!==0||mz!==0){
+                let speed=6.0;
+                pl.model.position.x+=mx*speed*delta;
+                pl.model.position.z+=mz*speed*delta;
+                let lim=14;
+                pl.model.position.x=Math.min(lim,Math.max(-lim,pl.model.position.x));
+                pl.model.position.z=Math.min(lim,Math.max(-lim,pl.model.position.z));
+                let angle=Math.atan2(mx,mz);
+                pl.model.rotation.y=angle;
+            }
+            controls.target.lerp(pl.model.position,0.1);
+            let percent=(pl.hp/pl.brawler.hp)*100;
+            healthBarDiv.style.width=`${Math.max(0,percent)}%`;
+            healthTextSpan.innerText=`❤️ ${Math.floor(pl.hp)}/${pl.brawler.hp}`;
+            
+            if(gameMode==='crystal'){
+                for(let i=0;i<crystalPickups.length;i++){
+                    if(pl.model.position.distanceTo(crystalPickups[i].position)<1.2){
+                        scene.remove(crystalPickups[i]);
+                        crystalPickups.splice(i,1);
+                        pl.crystals=(pl.crystals||0)+1;
+                        i--;
+                        crystalsSpan.innerText=pl.crystals;
+                    }
+                }
+                let teamTotal=0;
+                for(let u of playerTeam) teamTotal+=u.crystals||0;
+                if(teamTotal>=10){
+                    holdTime+=delta;
+                    holdMsgDiv.style.display='block';
+                    let remain=Math.max(0,10-holdTime).toFixed(1);
+                    holdMsgDiv.innerText=`⚡ УДЕРЖИВАЙТЕ ${remain}с`;
+                    if(holdTime>=10 && !winnerDeclared){
+                        winnerDeclared=true;
+                        matchActive=false;
+                        holdMsgDiv.style.display='none';
+                        showMsg("🏆 ПОБЕДА! УДЕРЖАЛИ 10 КРИСТАЛЛОВ!");
+                    }
+                } else { holdTime=0; holdMsgDiv.style.display='none'; }
+            }
+            if(attackCd>0) attackCd-=delta;
+            if(ultCd>0) ultCd-=delta;
+            if(gadgetCd>0) gadgetCd-=delta;
+        }
+        
+        function playerAttack(){
+            if(!matchActive||winnerDeclared||attackCd>0) return;
+            let pl=playerTeam[0];
+            let closest=null,minD=2.5;
+            for(let e of enemyTeam){
+                let d=pl.model.position.distanceTo(e.model.position);
+                if(d<minD && e.hp>0){ minD=d; closest=e;}
+            }
+            if(closest){ performAttack(pl,closest); attackCd=pl.brawler.base.attackSpeed; }
+        }
+        
+        function playerUlt(){
+            if(!matchActive||winnerDeclared||ultCd>0) return;
+            let pl=playerTeam[0];
+            performUlt(pl,enemyTeam);
+            ultCd=12;
+            showMsg(`💥 ${pl.brawler.base.ultName}!`);
+        }
+        
+        function playerGadget(){
+            if(!matchActive||winnerDeclared) return;
+            showMsg(`🎮 ${playerTeam[0].brawler.base.gadgetName} активирован!`);
+            gadgetCd=10;
+        }
+        
+        // ========== ДЖОЙСТИК (исправлен) ==========
+        const joyArea = document.getElementById('joystickArea');
+        const joyThumb = document.getElementById('joyThumb');
+        let activeTouchId = null;
+        let joyRect = { left:0, top:0, width:120, height:120 };
+        let joyCenter = { x:0, y:0 };
+        
+        function updateJoyRect() {
+            let rect = joyArea.getBoundingClientRect();
+            joyRect.left = rect.left;
+            joyRect.top = rect.top;
+            joyRect.width = rect.width;
+            joyRect.height = rect.height;
+            joyCenter.x = rect.left + rect.width/2;
+            joyCenter.y = rect.top + rect.height/2;
+        }
+        
+        function handleJoyStart(e) {
+            e.preventDefault();
+            let touch = e.touches[0];
+            updateJoyRect();
+            let dx = touch.clientX - joyCenter.x;
+            let dy = touch.clientY - joyCenter.y;
+            let maxR = joyRect.width/2 - 25;
+            let dist = Math.hypot(dx, dy);
+            if (dist > maxR) { dx = dx * maxR / dist; dy = dy * maxR / dist; }
+            let normX = dx / maxR;
+            let normZ = dy / maxR;
+            moveVec.x = normX;
+            moveVec.z = normZ;
+            joyThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+            activeTouchId = touch.identifier;
+        }
+        
+        function handleJoyMove(e) {
+            for(let i=0; i<e.changedTouches.length; i++) {
+                let touch = e.changedTouches[i];
+                if(touch.identifier === activeTouchId) {
+                    let dx = touch.clientX - joyCenter.x;
+                    let dy = touch.clientY - joyCenter.y;
+                    let maxR = joyRect.width/2 - 25;
+                    let dist = Math.hypot(dx, dy);
+                    if (dist > maxR) { dx = dx * maxR / dist; dy = dy * maxR / dist; }
+                    let normX = dx / maxR;
+                    let normZ = dy / maxR;
+                    moveVec.x = normX;
+                    moveVec.z = normZ;
+                    joyThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+                    break;
+                }
+            }
+            e.preventDefault();
+        }
+        
+        function handleJoyEnd(e) {
+            for(let i=0; i<e.changedTouches.length; i++) {
+                if(e.changedTouches[i].identifier === activeTouchId) {
+                    moveVec.x = 0;
+                    moveVec.z = 0;
+                    joyThumb.style.transform = `translate(0px, 0px)`;
+                    activeTouchId = null;
+                    break;
+                }
+            }
+            e.preventDefault();
+        }
+        
+        joyArea.addEventListener('touchstart', handleJoyStart, { passive: false });
+        window.addEventListener('touchmove', handleJoyMove, { passive: false });
+        window.addEventListener('touchend', handleJoyEnd);
+        
+        // Ящик (открытие в меню)
+        function openBox(){
+            const locked = BRAWLERS.filter(b => !inventory.some(i=>i.base.id===b.id) && !b.starter);
+            if(locked.length===0){ showMsg("📦 У тебя уже есть все бойцы!"); return; }
+            const newB = locked[Math.floor(Math.random()*locked.length)];
+            inventory.push(new OwnedBrawler(newB,1));
+            renderInventoryUI();
+            showMsg(`✨ ВЫПАЛ: ${newB.name} ✨`);
+        }
+        
+        // Инвентарь
+        function renderInventoryUI(){
+            let cont=document.getElementById('invList');
+            cont.innerHTML='';
+            for(let b of BRAWLERS){
+                let owned=inventory.find(i=>i.base.id===b.id);
+                let isOwned=!!owned;
+                let div=document.createElement('div');
+                div.className=`brawler-item ${!isOwned?'locked':''} ${selectedId===b.id&&isOwned?'selected':''}`;
+                div.innerHTML=`<span style="font-size:28px;">${b.icon}</span> <span style="flex:1;margin-left:12px;"><strong>${b.name}</strong>${isOwned?`<br>❤️${owned.hp} ⚔️${owned.damage} Ур.${owned.level}`:' <span style="color:#ffaa44;">🔒 ЗАКРЫТ</span>'}</span>`;
+                if(isOwned) div.onclick=()=>{ selectedId=b.id; renderInventoryUI(); showMsg(`${b.name} выбран!`); };
+                cont.appendChild(div);
+            }
+        }
+        
+        // Управление UI
+        document.getElementById('playCrystalBtn').onclick=()=>{ document.getElementById('mainMenu').style.display='none'; document.getElementById('gameUI').style.display='block'; startMatch('crystal'); };
+        document.getElementById('playKnockoutBtn').onclick=()=>{ document.getElementById('mainMenu').style.display='none'; document.getElementById('gameUI').style.display='block'; startMatch('knockout'); };
+        document.getElementById('menuInventoryBtn').onclick=()=>{ renderInventoryUI(); document.getElementById('inventoryModal').style.display='flex'; };
+        document.getElementById('gameInventoryBtn').onclick=()=>{ renderInventoryUI(); document.getElementById('inventoryModal').style.display='flex'; };
+        document.getElementById('closeInvModal').onclick=()=>{ document.getElementById('inventoryModal').style.display='none'; };
+        document.getElementById('exitToMenuBtn').onclick=()=>{ matchActive=false; winnerDeclared=false; document.getElementById('gameUI').style.display='none'; document.getElementById('mainMenu').style.display='flex'; };
+        document.getElementById('openBoxBtn').onclick=openBox;
+        document.getElementById('btnAttack').onclick=playerAttack;
+        document.getElementById('btnUlt').onclick=playerUlt;
+        document.getElementById('btnGadget').onclick=playerGadget;
+        
+        init3D();
+        renderInventoryUI();
+        
+        let lastTime=performance.now();
+        function animate(){
+            let now=performance.now();
+            let delta=Math.min(0.033, (now-lastTime)/1000);
+            lastTime=now;
+            if(matchActive && !winnerDeclared){
+                updatePlayerMovement(delta);
+                updateAITeam(enemyTeam,playerTeam,delta);
+                let allies=playerTeam.slice(1);
+                updateAITeam(allies,enemyTeam,delta);
+            }
+            crystalPickups.forEach(c=>c.rotation.y+=0.02);
+            controls.update();
+            renderer.render(scene,camera);
+            labelRenderer.render(scene,camera);
+            requestAnimationFrame(animate);
+        }
+        animate();
+        
+        showMsg("🎮 Добро пожаловать! Джойстик работает! Открывай ящики в меню!");
+    </script>
+</body>
+</html>
